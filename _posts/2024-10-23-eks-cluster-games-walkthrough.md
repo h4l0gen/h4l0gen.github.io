@@ -9,7 +9,7 @@ tags: [cloud security]
 
 Learn about EKS cluster security by 5 fun CTF challenges made by [wiz.io](https://wiz.io/).
 ![alt text](../images/welcome.png)
-# welcome the the challenge
+# welcome to the challenge
 You've hacked into a low-privileged AWS EKS pod. Use the web terminal below to find flags across the environment. Each challenge runs in a different Kubernetes namespaces with varying permissions.
 
 All K8s resources are crucial; challenges are based on real EKS misconfigurations and security issues.

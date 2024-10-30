@@ -104,7 +104,7 @@ kubectl get pods
 NAME                    READY   STATUS    RESTARTS      AGE
 database-pod-2c9b3a4e   1/1     Running   9 (28d ago)   355d
 ```
-I have tried to describe pod and god this interesting info 
+I have tried to describe pod and got this interesting info 
 ``` 
 imagePullSecrets:
   - name: registry-pull-secrets-780bab1d
@@ -567,7 +567,7 @@ permissions allowed:
 ```
 {}
 ```
-No permission of listing pod. we can see allowed permissionn 
+No permission of listing pod. we can see allowed permissions
 ```
 kubectl auth can-i --list 
 warning: the list may be incomplete: webhook authorizer does not support user rule resolution
@@ -626,12 +626,12 @@ use this output token for kubectl commands.
 $ export K8S_AUTH_TOKEN="<token here>"
 ```
 
-to check permissions changes or not try listing the pods 
+to check permission changed or not try listing the pods 
 ```
 $ kubectl get pods --token $K8S_AUTH_TOKEN
 No resources found in challenge4 namespace.
 ```
-yes permissions are changed.
+yes permissions are changed now.
 ```
 kubectl auth can-i --list --token $K8S_AUTH_TOKEN
 warning: the list may be incomplete: webhook authorizer does not support user rule resolution
@@ -747,7 +747,7 @@ An error occurred (InvalidIdentityToken) when calling the AssumeRoleWithWebIdent
 ```
 The default audience for a token created with kubectl is `https://kubernetes.default.svc` which amazon doesn't seem to like. In trust policy `sts.amazonaws.com` audience is given, lets create token again with this.
 ```
-$ export TOKEN=$(kubectl create token debug-sa --audience sts-amazonaws.com)
+$ export TOKEN=$(kubectl create token debug-sa --audience sts.amazonaws.com)
 ```
 lets assume again
 ```
@@ -778,3 +778,5 @@ wiz_eks_challenge{w0w_y0u_really_are_4n_eks_and_aws_exp1oitation_legend}
 ```
 
 SOLVED!!
+
+Feel free to connect with me to discuss on cloud security or DevSecOps. 

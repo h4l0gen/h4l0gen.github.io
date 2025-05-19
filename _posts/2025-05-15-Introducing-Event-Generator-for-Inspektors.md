@@ -1,8 +1,8 @@
 ---
 title: "Introducing Event Generator for Inspektors"
 date: 2024-10-23 00:00:00 +0800
-categories: [Cloud Security]
-tags: [cloud security]
+categories: [Cloud Security, Cloud Development]
+tags: [cloud security, cloud development]
 ---
 
 Hi Welcome to my blog.
